@@ -1,0 +1,10 @@
+--- a/drivers/hwmon/g762.c
++++ b/drivers/hwmon/g762.c
+@@ -45,6 +45,7 @@
+ #define DRVNAME "g762"
+ 
+ static const struct i2c_device_id g762_id[] = {
++	{ "g761", 0 },
+ 	{ "g762", 0 },
+ 	{ "g763", 0 },
+ 	{ }

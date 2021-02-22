@@ -1,0 +1,47 @@
+#
+# Copyright (c) 2015 The Linux Foundation. All rights reserved.
+# Copyright (c) 2011-2015 OpenWrt.org
+#
+
+. /lib/functions/uci-defaults.sh
+. /lib/functions/system.sh
+
+board_config_update
+
+board=$(board_name)
+
+#
+# Switch configuration
+#
+# There are two switches: master (switch0) and slave (switch1).
+#
+# Ports P0 and P5 of the master switch are connected to the CPU ports
+# ETH1 and ETH2, respectively. ETH1 shall be used for LAN and ETH2 for WAN.
+#
+# Port P3 of the master switch is the WAN port. VLAN2 is set up
+# to isolate P3 and P5 of the master switch from LAN ports of
+# both the master and the slave switch.
+#
+# All ports of the master switch except P3 and P5 are assigned to VLAN1.
+#
+# All ports of the slave switch are assigned to VLAN1. Port P6 of the slave
+# switch is unused and idle.
+#
+
+case "$board" in
+netgear,r9000|\
+netgear,xr700)
+	ucidef_set_interfaces_lan_wan "eth1.1" "eth2.2"
+	ucidef_add_switch "switch0" \
+		"0t@eth1" "1:lan" "2:lan" "4:lan" "6:lan" "3:wan" "5t@eth2"
+	ucidef_add_switch "switch1" \
+		"6t@eth1" "0:lan" "1:lan" "2:lan" "3:lan" "4:lan" "5:lan"
+	;;
+*)
+	echo "Unsupported hardware. Network interfaces not intialized"
+	;;
+esac
+
+board_config_flush
+
+exit 0

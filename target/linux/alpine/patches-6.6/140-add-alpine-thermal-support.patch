@@ -1,0 +1,26 @@
+Index: linux-6.6.22/drivers/thermal/Makefile
+===================================================================
+--- linux-6.6.22.orig/drivers/thermal/Makefile
++++ linux-6.6.22/drivers/thermal/Makefile
+@@ -64,3 +64,4 @@ obj-$(CONFIG_AMLOGIC_THERMAL)     += aml
+ obj-$(CONFIG_SPRD_THERMAL)	+= sprd_thermal.o
+ obj-$(CONFIG_KHADAS_MCU_FAN_THERMAL)	+= khadas_mcu_fan.o
+ obj-$(CONFIG_LOONGSON2_THERMAL)	+= loongson2_thermal.o
++obj-$(CONFIG_AL_THERMAL)	+= al/
+Index: linux-6.6.22/drivers/thermal/Kconfig
+===================================================================
+--- linux-6.6.22.orig/drivers/thermal/Kconfig
++++ linux-6.6.22/drivers/thermal/Kconfig
+@@ -522,4 +522,12 @@ config LOONGSON2_THERMAL
+ 	  is higher than the high temperature threshold or lower than the low
+ 	  temperature threshold, the interrupt will occur.
+ 
++config AL_THERMAL
++	bool "Annapurna Labs thermal sensor driver"
++	depends on ARCH_ALPINE
++	depends on OF
++	help
++	  Enable this to plug the Annapurna Labs thermal sensor driver into the
++	  Linux thermal framework
++
+ endif
