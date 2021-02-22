@@ -1,0 +1,10 @@
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -1,6 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+ dtb-$(CONFIG_ARCH_ALPINE) += \
+-	alpine-db.dtb
++	alpine-r9000.dtb
+ dtb-$(CONFIG_MACH_ARTPEC6) += \
+ 	artpec6-devboard.dtb
+ dtb-$(CONFIG_MACH_ASM9260) += \
