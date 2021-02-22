@@ -1,0 +1,16 @@
+--- a/drivers/crypto/Kconfig
++++ b/drivers/crypto/Kconfig
+@@ -824,4 +824,6 @@ config CRYPTO_DEV_SA2UL
+ source "drivers/crypto/keembay/Kconfig"
+ source "drivers/crypto/aspeed/Kconfig"
+ 
++source "drivers/crypto/al/Kconfig"
++
+ endif # CRYPTO_HW
+--- a/drivers/crypto/Makefile
++++ b/drivers/crypto/Makefile
+@@ -53,3 +53,4 @@ obj-y += xilinx/
+ obj-y += hisilicon/
+ obj-$(CONFIG_CRYPTO_DEV_AMLOGIC_GXL) += amlogic/
+ obj-y += keembay/
++obj-$(CONFIG_CRYPTO_DEV_AL_CRYPTO) += al/

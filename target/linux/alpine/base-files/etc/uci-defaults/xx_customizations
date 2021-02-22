@@ -1,0 +1,54 @@
+
+wifi_key=$(uci -q get wireless.@wifi-iface[1].key)
+if [ -z "$wifi_key" ]; then
+	uci set wireless.@wifi-iface[1].ssid='home_network'
+	uci set wireless.@wifi-iface[1].encryption=psk2
+	uci set wireless.@wifi-iface[1].key='secret'
+
+	uci set wireless.@wifi-device[1].country=US
+	uci set wireless.@wifi-device[1].channel=auto
+	uci set wireless.@wifi-device[1].disabled='0'
+
+	uci commit wireless
+fi
+
+exit 0
+
+uci set system.@system[0].hostname='OpenWrt-dev'
+uci commit system
+
+#
+# IP address
+#
+
+uci set network.lan.ipaddr=192.168.2.1
+uci commit network
+
+#
+# SSH
+#
+
+if [ $(uci -q get dropbear.@dropbear[0].Port) = "22" ]; then
+	uci set dropbear.@dropbear[0].Port='2222'
+	uci commit dropbear
+	service dropbear restart
+
+	sed -i -e '/ListenAddress/d' /etc/ssh/sshd_config
+	sed -i -e '/PasswordAuthentication/d' /etc/ssh/sshd_config
+	sed -i -e '/PermitEmptyPasswords/d' /etc/ssh/sshd_config
+	sed -i -e '/PermitRootLogin/d' /etc/ssh/sshd_config
+	sed -i -e '/UsePAM/d' /etc/ssh/sshd_config
+
+	cat >>/etc/ssh/sshd_config <<EOF
+ListenAddress 192.168.2.1
+PasswordAuthentication yes
+PermitEmptyPasswords yes
+PermitRootLogin yes
+UsePAM no
+EOF
+
+	service sshd enable
+	service sshd restart
+
+	passwd -d root
+fi
