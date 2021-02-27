@@ -1,0 +1,44 @@
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -545,6 +545,32 @@ config ARCH_OMAP1
+ 	help
+ 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
+ 
++config ARCH_ALPINE
++	bool "Annapurna Labs Alpine platform"
++	select CPU_V7
++	select HAVE_SMP
++	select ARM_AMBA
++	select SPARSE_IRQ
++	select ARM_GIC
++	select GENERIC_IRQ_CHIP
++	select HAVE_ARM_ARCH_TIMER
++	select ARM_TIMER_SP804
++	select CLKDEV_LOOKUP
++	select GENERIC_CLOCKEVENTS
++	select GENERIC_IRQ_CHIP
++	select HAVE_CLK
++	select HAVE_ARCH_TIMERS
++	select COMMON_CLK
++	select HAVE_SCHED_CLOCK
++	select ARCH_SCHED_CLOCK
++	select MFD_SYSCON
++	select ARM_HWCC_FLAG
++	select ARM_HAS_SG_CHAIN
++	select ARCH_SUPPORTS_BIG_ENDIAN
++	select FORCE_PCI
++	help
++	  This enables support for the Annapurna Labs Alpine V1 boards.
++
+ endchoice
+ 
+ menu "Multiple platform selection"
+@@ -618,8 +644,6 @@ config ARCH_VIRT
+ #
+ source "arch/arm/mach-actions/Kconfig"
+ 
+-source "arch/arm/mach-alpine/Kconfig"
+-
+ source "arch/arm/mach-artpec/Kconfig"
+ 
+ source "arch/arm/mach-asm9260/Kconfig"
