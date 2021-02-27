@@ -1,0 +1,16 @@
+--- a/drivers/net/ethernet/Kconfig
++++ b/drivers/net/ethernet/Kconfig
+@@ -182,5 +182,6 @@ source "drivers/net/ethernet/via/Kconfig
+ source "drivers/net/ethernet/wiznet/Kconfig"
+ source "drivers/net/ethernet/xilinx/Kconfig"
+ source "drivers/net/ethernet/xircom/Kconfig"
++source "drivers/net/ethernet/al/Kconfig"
+ 
+ endif # ETHERNET
+--- a/drivers/net/ethernet/Makefile
++++ b/drivers/net/ethernet/Makefile
+@@ -96,3 +96,4 @@ obj-$(CONFIG_NET_VENDOR_XILINX) += xilin
+ obj-$(CONFIG_NET_VENDOR_XIRCOM) += xircom/
+ obj-$(CONFIG_NET_VENDOR_SYNOPSYS) += synopsys/
+ obj-$(CONFIG_NET_VENDOR_PENSANDO) += pensando/
++obj-$(CONFIG_NET_AL_ETH) += al/
