@@ -1,0 +1,9 @@
+--- a/drivers/edac/Kconfig
++++ b/drivers/edac/Kconfig
+@@ -524,4 +524,6 @@ config EDAC_BLUEFIELD
+ 	  Support for error detection and correction on the
+ 	  Mellanox BlueField SoCs.
+ 
++source "drivers/edac/al/Kconfig"
++
+ endif # EDAC
