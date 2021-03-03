@@ -1,0 +1,29 @@
+#!/bin/sh
+
+[ -e /lib/firmware/$FIRMWARE ] && exit 0
+
+. /lib/functions/caldata.sh
+
+board=$(board_name)
+
+case "$FIRMWARE" in
+"ath10k/pre-cal-pci-0001:03:00.0.bin")
+	case $board in
+	netgear,r9000)
+		caldata_extract "ART" 0x1000 0x2f20
+		ln -sf /lib/firmware/$FIRMWARE /lib/firmware/ath10k/QCA9984/hw1.0/board.bin
+		;;
+	esac
+	;;
+"ath10k/pre-cal-pci-0001:04:00.0.bin")
+	case $board in
+	netgear,r9000)
+		caldata_extract "ART" 0x5000 0x2f20
+		ln -sf /lib/firmware/$FIRMWARE /lib/firmware/ath10k/QCA9984/hw1.0/board_2.bin
+		;;
+	esac
+	;;
+*)
+	exit 1
+	;;
+esac
