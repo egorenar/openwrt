@@ -350,6 +350,19 @@
 			interrupt-map = <0x3000 0x0 0x0 0x1 0x2 0x0 0x20 0x4 0x3800 0x0 0x0 0x1 0x2 0x0 0x24 0x4 0x4000 0x0 0x0 0x1 0x2 0x0 0x2b 0x4 0x4800 0x0 0x0 0x1 0x2 0x0 0x2c 0x4>;
 			ranges = <0x0 0x0 0xfbc00000 0x0 0xfbc00000 0x0 0x100000 0x2000000 0x0 0xfe000000 0x0 0xfe000000 0x0 0x1000000>;
 			bus-range = <0x0 0x0>;
+
+			eth1@0,1 {
+				compatible = "pci1c36,0001";
+				device_type = "pci";
+				reg = <0x00000800 0 0 0 0>;
+
+				mdio0: mdio {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					status = "disabled";
+				};
+			};
 		};
 
 		pcie-external0 {
@@ -913,6 +926,56 @@
 				arg = <0x2b>;
 			};
 		};
+
+		mdio1: mdio-al-gpio {
+			compatible = "annapurna-labs,mdio-al-gpio";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			status = "disabled";
+		};
+	};
+};
+
+&mdio0 {
+	status = "okay";
+
+	ethernet-phy@0 {
+		device_type = "ethernet-phy";
+		reg = <0>;
+		qca,mib-poll-interval = <500>;
+
+		qca,ar8327-initvals = <
+			0x00004 0x7680000   /* PORT0_PAD_CTRL */
+			0x00008 0x7600000   /* PORT5_PAD_CTRL */
+			0x0000c 0x80        /* PORT6_PAD_CTRL */
+			0x000e0 0xc74164de  /* PAD_SGMII_CTRL*/
+			0x000e4 0xea545     /* PAD_MAC_PWR_SEL */
+			0x00010 0x2613a0    /* POS */
+			0x0007c 0x4e        /* PORT0_STATUS */
+			0x00090 0x4e        /* PORT5_STATUS */
+			0x00094 0x4e        /* PORT6_STATUS */
+			0x00700 0x00        /* GOL_TRUNK_CTRL0 */
+			0x00704 0x00        /* GOL_TRUNK_CTRL1 */
+			>;
+	};
+};
+
+&mdio1 {
+	status = "okay";
+
+	ethernet-phy@0 {
+		device_type = "ethernet-phy";
+		reg = <0>;
+		qca,mib-poll-interval = <500>;
+
+		qca,ar8327-initvals = <
+			0x00004 0x80080     /* PORT0_PAD_CTRL */
+			0x000e0 0xc74164de  /* PAD_SGMII_CTRL */
+			0x000e4 0xaa545     /* PAD_MAC_PWR_SEL */
+			0x00010 0x2613a0    /* POS */
+			0x0007c 0x4e        /* PORT0_STATUS */
+			>;
 	};
 };
 
