@@ -11,7 +11,8 @@
 	model = "Annapurna Labs Alpine Dev Board";
 
 	chosen {
-		bootargs = "console=ttyS0,115200 pci=pcie_bus_perf ubi.mtd=ubi earlycon earlyprintk";
+		bootargs = "console=ttyS0,115200 pci=pcie_bus_perf ubi.mtd=ubi earlycon";
+		stdout-path = &serial;
 	};
 
 	aliases {
@@ -301,7 +302,7 @@
 			baseidx = <0x28>;
 		};
 
-		uart0 {
+		serial: uart0 {
 			compatible = "ns16550a";
 			reg = <0x0 0xfd883000 0x0 0x1000>;
 			clock-frequency = <0x165a0bc0>;
