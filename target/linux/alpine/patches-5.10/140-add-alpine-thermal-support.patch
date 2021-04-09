@@ -1,0 +1,22 @@
+--- a/drivers/thermal/Makefile
++++ b/drivers/thermal/Makefile
+@@ -62,3 +62,4 @@ obj-$(CONFIG_UNIPHIER_THERMAL)	+= uniphi
+ obj-$(CONFIG_AMLOGIC_THERMAL)     += amlogic_thermal.o
+ obj-$(CONFIG_SPRD_THERMAL)	+= sprd_thermal.o
+ obj-$(CONFIG_KHADAS_MCU_FAN_THERMAL)	+= khadas_mcu_fan.o
++obj-$(CONFIG_AL_THERMAL)	+= al/
+--- a/drivers/thermal/Kconfig
++++ b/drivers/thermal/Kconfig
+@@ -510,4 +510,12 @@ config KHADAS_MCU_FAN_THERMAL
+ 	  If you say yes here you get support for the FAN controlled
+ 	  by the Microcontroller found on the Khadas VIM boards.
+ 
++config AL_THERMAL
++	bool "Annapurna Labs thermal sensor driver"
++	depends on ARCH_ALPINE
++	depends on OF
++	help
++	  Enable this to plug the Annapurna Labs thermal sensor driver into the
++	  Linux thermal framework
++
+ endif
