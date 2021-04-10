@@ -317,6 +317,22 @@ endef
 $(eval $(call KernelPackage,crypto-hmac))
 
 
+define KernelPackage/crypto-hw-alpine
+  TITLE:=Alpine hardware crypto module
+  DEPENDS:=+kmod-crypto-manager
+  KCONFIG:= \
+	CONFIG_CRYPTO_HW=y \
+	CONFIG_CRYPTO_DEV_AL_CRYPTO \
+	CONFIG_CRYPTO_DEV_AL_CRYPTO_STATS \
+	CONFIG_CRYPTO_DEV_AL_AHASH_CRC
+  FILES:=$(LINUX_DIR)/drivers/crypto/al/al_crypto.ko
+  AUTOLOAD:=$(call AutoLoad,09,al_crypto)
+  $(call AddDepends/crypto)
+endef
+
+$(eval $(call KernelPackage,crypto-hw-alpine))
+
+
 define KernelPackage/crypto-hw-ccp
   TITLE:=AMD Cryptographic Coprocessor
   DEPENDS:= \
