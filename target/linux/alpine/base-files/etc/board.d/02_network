@@ -11,7 +11,8 @@ board_config_update
 board=$(board_name)
 
 case "$board" in
-netgear,r9000)
+netgear,r9000|\
+netgear,xr700)
 	ucidef_set_interfaces_lan_wan "eth1.1" "eth1.2"
 	ucidef_add_switch "switch0" \
 		"0t@eth1" "1:lan" "2:lan" "3:lan" "4:lan" "5:lan" "6:lan"
