@@ -13,7 +13,8 @@ touch /etc/config/ubootenv
 board=$(board_name)
 
 case "$board" in
-netgear,r9000)
+netgear,r9000|\
+netgear,xr700)
 	ubootenv_add_uci_config "/dev/mtd1" "0x00000" "0x4000" "0x20000"
 	ubootenv_add_uci_config "/dev/mtd1" "0x20000" "0x4000" "0x20000"
 	;;
