@@ -9,7 +9,7 @@ define Device/Default
 	PROFILES := Default
 	KERNEL_DEPENDS = $$(wildcard $(DTS_DIR)/$$(DEVICE_DTS).dts)
 	KERNEL_LOADADDR = 0x8000
-	DEVICE_DTS = $$(SOC)-$(lastword $(subst _, ,$(1)))
+	DEVICE_DTS := alpine-r9000
 	IMAGES := sysupgrade.bin
 	IMAGE/sysupgrade.bin = sysupgrade-tar | append-metadata
 	IMAGE/sysupgrade.bin/squashfs :=
@@ -45,5 +45,24 @@ define Device/netgear_r9000
 	IMAGE/nand.ubi := append-ubi
 endef
 TARGET_DEVICES += netgear_r9000
+
+define Device/netgear_xr700
+	$(call Device/DniImage)
+	DEVICE_VENDOR := NETGEAR
+	DEVICE_MODEL := Nighthawk XR700
+	SOC := alpine
+	KERNEL_SIZE := 32768k
+	NETGEAR_BOARD_ID := XR700
+	NETGEAR_HW_ID := 29765235+0+512+1024+4x4+4x4
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	BOARD_NAME := xr700
+	SUPPORTED_DEVICES += xr700 r9000
+	DEVICE_PACKAGES :=
+	IMAGES += dtb nand.ubi
+	IMAGE/dtb := install-dtb
+	IMAGE/nand.ubi := append-ubi
+endef
+TARGET_DEVICES += netgear_xr700
 
 $(eval $(call BuildImage))
