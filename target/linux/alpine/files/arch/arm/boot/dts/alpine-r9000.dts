@@ -959,7 +959,7 @@
 		};
 	};
 
-	aliases {
+  aliases {
 		led-boot = &led_system;
 		led-failsafe = &led_system;
 		led-running = &led_system;
