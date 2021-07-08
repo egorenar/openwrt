@@ -441,25 +441,9 @@
 			};
 		};
 
-		thermal: thermal {
-			compatible = "amazon,al-thermal";
+		thermal {
+			compatible = "annapurna-labs,al-thermal";
 			reg = <0x0 0xfd860a00 0x0 0x100>;
-			#thermal-sensor-cells = <0x1>;
-		};
-
-		thermal-zones {
-			thermal-z0 {
-				polling-delay-passive = <250>;
-				polling-delay = <1000>;
-				thermal-sensors = <&thermal 0>;
-				trips {
-					critical {
-						temperature = <105000>;
-						hysteresis = <2000>;
-						type = "critical";
-					};
-				};
-			};
 		};
 
 		nand: nand-flash {
