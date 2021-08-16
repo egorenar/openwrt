@@ -1,5 +1,8 @@
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
 /memreserve/	0x0000000000000000 0x0000000000100000;
 
 / {
@@ -12,9 +15,6 @@
 	chosen {
 		bootargs = "console=ttyS0,115200 pci=pcie_bus_perf ubi.mtd=ubi earlycon";
 		stdout-path = &serial;
-	};
-
-	aliases {
 	};
 
 	memory {
@@ -244,6 +244,7 @@
 			clocks = <0x3>;
 			clock-names = "apb_pclk";
 			baseidx = <0x0>;
+			phandle = <0xb>;
 		};
 
 		gpio1 {
@@ -255,6 +256,7 @@
 			clocks = <0x3>;
 			clock-names = "apb_pclk";
 			baseidx = <0x8>;
+			phandle = <0xc>;
 		};
 
 		gpio2 {
@@ -266,6 +268,7 @@
 			clocks = <0x3>;
 			clock-names = "apb_pclk";
 			baseidx = <0x10>;
+			phandle = <0xd>;
 		};
 
 		gpio3 {
@@ -277,6 +280,7 @@
 			clocks = <0x3>;
 			clock-names = "apb_pclk";
 			baseidx = <0x18>;
+			phandle = <0xe>;
 		};
 
 		gpio4 {
@@ -288,6 +292,7 @@
 			clocks = <0x3>;
 			clock-names = "apb_pclk";
 			baseidx = <0x20>;
+			phandle = <0xf>;
 		};
 
 		gpio5 {
@@ -299,6 +304,7 @@
 			clocks = <0x3>;
 			clock-names = "apb_pclk";
 			baseidx = <0x28>;
+			phandle = <0x10>;
 		};
 
 		serial: uart0 {
@@ -933,6 +939,80 @@
 			#size-cells = <0>;
 
 			status = "disabled";
+		};
+	};
+
+	aliases {
+		led-boot = &led_system;
+		led-failsafe = &led_system;
+		led-running = &led_system;
+		led-upgrade = &led_system;
+	};
+
+	leds: leds {
+		compatible = "gpio-leds";
+
+		led_system: system {
+			label = "white:system";
+			gpios = <0xd 0x6 0x0>;
+			default-state = "on";
+		};
+
+		wan {
+			label = "white:wan";
+			gpios = <0xd 0x7 0x0>;
+		};
+
+		guest {
+			label = "white:guest";
+			gpios = <0xf 0x3 0x1>;
+		};
+
+		usb1 {
+			label = "white:usb1";
+			gpios = <0xf 0x4 0x0>;
+		};
+
+		usb2 {
+			label = "white:usb2";
+			gpios = <0xf 0x5 0x0>;
+		};
+
+		sfp {
+			label = "white:sfp";
+			gpios = <0xe 0x6 0x0>;
+		};
+
+		radio {
+			label = "white:radio";
+			gpios = <0xe 0x5 0x0>;
+		};
+
+		wps {
+			label = "white:wps";
+			gpios = <0xf 0x7 0x0>;
+		};
+	};
+
+	keys: keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "Reset button";
+			gpios = <0xb 0x5 0x1>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		rfkill {
+			label = "Toggle radio button";
+			gpios = <0xf 0x0 0x1>;
+			linux,code = <KEY_RFKILL>;
+		};
+
+		button_wps {
+			label = "WPS button";
+			gpios = <0xe 0x7 0x1>;
+			linux,code = <KEY_WPS_BUTTON>;
 		};
 	};
 };
