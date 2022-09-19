@@ -63,8 +63,12 @@ jobs:
       run: cd openwrt && ./scripts/feeds update -a
 
     - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a
-
+      run: |
+      cd openwrt && ./scripts/feeds install -a
+      ./scripts/feeds update node
+      rm ./package/feeds/packages/node
+      rm ./package/feeds/packages/node-*
+      ./scripts/feeds install -a -p node
     - name: Load custom configuration
       run: |
         [ -e files ] && mv files openwrt/files
