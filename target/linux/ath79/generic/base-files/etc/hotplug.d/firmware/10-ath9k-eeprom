@@ -12,6 +12,8 @@ case "$FIRMWARE" in
 	8dev,lima)
 		caldata_extract "art" 0x1000 0x800
 		;;
+	asus,pl-ac56|\
+	asus,rp-ac51|\
 	asus,rp-ac66)
 		caldata_extract "art" 0x1000 0x440
 		;;
@@ -57,6 +59,10 @@ case "$FIRMWARE" in
 		caldata_extract "calibrate" 0x1000 0x440
 		ath9k_patch_mac $(mtd_get_mac_ascii u-boot-env0 RADIOADDR1)
 		;;
+	extreme-networks,ws-ap3805i)
+		caldata_extract "art" 0x1000 0x440
+		ath9k_patch_mac $(mtd_get_mac_ascii cfg1 RADIOADDR1)
+		;;
 	nec,wg800hp)
 		caldata_extract "art" 0x1000 0x440
 		ath9k_patch_mac $(mtd_get_mac_text board_data 0x680)
@@ -64,6 +70,11 @@ case "$FIRMWARE" in
 	qihoo,c301)
 		caldata_extract "radiocfg" 0x1000 0x440
 		ath9k_patch_mac $(mtd_get_mac_ascii devdata "wlan24mac")
+		;;
+	tplink,deco-s4-v2)
+		caldata_extract "art" 0x1000 0x440
+		base_mac=$(mtd_get_mac_encrypted_deco $(find_mtd_part config))
+		ath9k_patch_mac $(macaddr_add $base_mac 1)
 		;;
 	*)
 		caldata_die "board $board is not supported yet"
@@ -85,6 +96,8 @@ case "$FIRMWARE" in
 	tplink,tl-wdr4310-v1|\
 	tplink,tl-wdr4900-v2|\
 	ubnt,unifi-ap-pro|\
+	watchguard,ap100|\
+	watchguard,ap200|\
 	winchannel,wb2000)
 		caldata_extract "art" 0x5000 0x440
 		;;
@@ -115,16 +128,7 @@ case "$FIRMWARE" in
 	netgear,wnr2200-16m|\
 	pcs,cap324|\
 	tplink,tl-wr2543-v1|\
-	tplink,tl-wr842n-v1|\
-	ubnt,airrouter|\
-	ubnt,bullet-m-ar7240|\
-	ubnt,bullet-m-ar7241|\
-	ubnt,nanobridge-m|\
-	ubnt,nanostation-loco-m|\
-	ubnt,nanostation-m|\
-	ubnt,picostation-m|\
-	ubnt,powerbridge-m|\
-	ubnt,rocket-m)
+	tplink,tl-wr842n-v1)
 		caldata_extract "art" 0x1000 0x1000
 		;;
 	openmesh,mr600-v1|\

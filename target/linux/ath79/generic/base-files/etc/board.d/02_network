@@ -19,6 +19,7 @@ ath79_setup_interfaces()
 	araknis,an-700-ap-i-ac|\
 	arduino,yun|\
 	aruba,ap-105|\
+	asus,rp-ac51|\
 	asus,rp-ac66|\
 	avm,fritz1750e|\
 	avm,fritz300e|\
@@ -42,6 +43,7 @@ ath79_setup_interfaces()
 	engenius,ecb1750|\
 	engenius,ecb600|\
 	enterasys,ws-ap3705i|\
+	extreme-networks,ws-ap3805i|\
 	glinet,gl-ar300m-lite|\
 	glinet,gl-usb150|\
 	hak5,wifi-pineapple-nano|\
@@ -63,7 +65,9 @@ ath79_setup_interfaces()
 	pisen,ts-d084|\
 	pisen,wmb001n|\
 	pisen,wmm003n|\
+	ruckus,zf7321|\
 	siemens,ws-ap3610|\
+	sophos,ap15|\
 	sophos,ap55|\
 	sophos,ap55c|\
 	sophos,ap100|\
@@ -76,8 +80,10 @@ ath79_setup_interfaces()
 	tplink,cpe610-v2|\
 	tplink,cpe710-v1|\
 	tplink,eap225-outdoor-v1|\
+	tplink,eap225-outdoor-v3|\
 	tplink,eap225-v1|\
 	tplink,eap225-v3|\
+	tplink,eap225-v4|\
 	tplink,eap245-v1|\
 	tplink,re350k-v1|\
 	tplink,re355-v1|\
@@ -88,31 +94,31 @@ ath79_setup_interfaces()
 	tplink,tl-wa1201-v2|\
 	tplink,tl-wr902ac-v1|\
 	ubnt,bullet-ac|\
-	ubnt,bullet-m-ar7240|\
-	ubnt,bullet-m-ar7241|\
 	ubnt,bullet-m-xw|\
 	ubnt,lap-120|\
 	ubnt,litebeam-ac-gen2|\
 	ubnt,nanobeam-ac|\
 	ubnt,nanobeam-ac-xc|\
-	ubnt,nanobridge-m|\
 	ubnt,nanostation-ac-loco|\
-	ubnt,nanostation-loco-m|\
 	ubnt,nanostation-loco-m-xw|\
-	ubnt,picostation-m|\
 	ubnt,powerbeam-5ac-500|\
 	ubnt,powerbeam-5ac-gen2|\
 	ubnt,powerbeam-m2-xw|\
 	ubnt,powerbeam-m5-xw|\
-	ubnt,powerbridge-m|\
 	ubnt,rocket-5ac-lite|\
-	ubnt,rocket-m|\
 	ubnt,unifiac-lite|\
 	ubnt,unifiac-lr|\
 	ubnt,unifiac-mesh|\
 	ubnt,unifi|\
+	watchguard,ap100|\
+	watchguard,ap200|\
+	watchguard,ap300|\
 	wd,mynet-wifi-rangeextender|\
-	winchannel,wb2000)
+	winchannel,wb2000|\
+	zyxel,nwa1100-nh|\
+	zyxel,nwa1121-ni|\
+	zyxel,nwa1123-ac|\
+	zyxel,nwa1123-ni)
 		ucidef_set_interface_lan "eth0"
 		;;
 	airtight,c-75)
@@ -129,8 +135,14 @@ ath79_setup_interfaces()
 	engenius,enstationac-v1|\
 	engenius,ews511ap|\
 	ocedo,ursus|\
+	ruckus,zf7372|\
 	ubnt,unifi-ap-outdoor-plus)
 		ucidef_set_interface_lan "eth0 eth1"
+		;;
+	asus,pl-ac56)
+		# port 6 (internal) is the power-line port
+		ucidef_add_switch "switch0" \
+			"0@eth0" "1:lan:1" "2:lan:2" "3:lan:3" "6:lan:4"
 		;;
 	atheros,db120)
 		ucidef_add_switch "switch0" \
@@ -176,8 +188,7 @@ ath79_setup_interfaces()
 	tplink,archer-c60-v3|\
 	tplink,tl-wdr3500-v1|\
 	tplink,tl-wr842n-v1|\
-	tplink,tl-wr842n-v3|\
-	ubnt,airrouter)
+	tplink,tl-wr842n-v3)
 		ucidef_set_interface_wan "eth1"
 		ucidef_add_switch "switch0" \
 			"0@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
@@ -212,7 +223,6 @@ ath79_setup_interfaces()
 	tplink,wbs210-v2|\
 	tplink,wbs510-v1|\
 	tplink,wbs510-v2|\
-	ubnt,nanostation-m|\
 	ubnt,routerstation)
 		ucidef_set_interfaces_lan_wan "eth1" "eth0"
 		;;
@@ -509,7 +519,8 @@ ath79_setup_interfaces()
 		ucidef_add_switch "switch0" \
 			"0@eth0" "1:lan" "2:lan"
 		;;
-	tplink,deco-m4r-v1)
+	tplink,deco-m4r-v1|\
+	tplink,deco-s4-v2)
 		ucidef_add_switch "switch0" \
 			"0@eth0" "3:lan:1" "5:lan:2"
 		;;
@@ -660,16 +671,16 @@ ath79_setup_macs()
 		wan_mac=$(mtd_get_mac_ascii u-boot-env wanaddr)
 		label_mac=$wan_mac
 		;;
-	jjplus,ja76pf2)
-		wan_mac=$(fconfig -s -r -d $(find_mtd_part "RedBoot config") -n alias/ethaddr)
-		lan_mac=$(macaddr_add "$wan_mac" 1)
-		;;
 	mercury,mw4530r-v1|\
 	tplink,tl-wdr3600-v1|\
 	tplink,tl-wdr4300-v1|\
 	tplink,tl-wdr4300-v1-il)
 		base_mac=$(mtd_get_mac_binary u-boot 0x1fc00)
 		wan_mac=$(macaddr_add "$base_mac" 1)
+		;;
+	tplink,deco-s4-v2)
+		lan_mac=$(mtd_get_mac_encrypted_deco $(find_mtd_part config))
+		label_mac=$lan_mac
 		;;
 	nec,wf1200cr|\
 	nec,wg1200cr)
@@ -697,6 +708,11 @@ ath79_setup_macs()
 		wan_mac=$(mtd_get_mac_binary factory 0x0)
 		lan_mac=$(macaddr_setbit_la "$wan_mac")
 		;;
+	ruckus,zf7321|\
+	ruckus,zf7372)
+		lan_mac=$(mtd_get_mac_binary board-data 0x807E)
+		label_mac=$lan_mac
+		;;
 	sitecom,wlr-7100|\
 	sitecom,wlr-8100)
 		lan_mac=$(mtd_get_mac_ascii u-boot-env ethaddr)
@@ -717,15 +733,6 @@ ath79_setup_macs()
 		wan_mac=$(mtd_get_mac_text mac 0x18)
 		label_mac=$wan_mac
 		;;
-	ubnt,airrouter|\
-	ubnt,bullet-m-ar7240|\
-	ubnt,bullet-m-ar7241|\
-	ubnt,nanobridge-m|\
-	ubnt,nanostation-loco-m|\
-	ubnt,nanostation-m|\
-	ubnt,picostation-m|\
-	ubnt,powerbridge-m|\
-	ubnt,rocket-m|\
 	ubnt,unifi)
 		label_mac=$(cat /sys/class/ieee80211/phy0/macaddress)
 		;;

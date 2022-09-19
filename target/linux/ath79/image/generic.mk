@@ -3,12 +3,13 @@ include ./common-netgear.mk
 include ./common-senao.mk
 include ./common-tp-link.mk
 include ./common-yuncore.mk
+include ./common-ubnt.mk
 
 DEVICE_VARS += ADDPATTERN_ID ADDPATTERN_VERSION
 DEVICE_VARS += SEAMA_SIGNATURE SEAMA_MTDBLOCK
 DEVICE_VARS += KERNEL_INITRAMFS_PREFIX DAP_SIGNATURE
 DEVICE_VARS += EDIMAX_HEADER_MAGIC EDIMAX_HEADER_MODEL
-DEVICE_VARS += OPENMESH_CE_TYPE
+DEVICE_VARS += OPENMESH_CE_TYPE ZYXEL_MODEL_STRING
 
 define Build/add-elecom-factory-initramfs
   $(eval edimax_model=$(word 1,$(1)))
@@ -160,6 +161,13 @@ define Build/wrgg-pad-rootfs
 	$(STAGING_DIR_HOST)/bin/padjffs2 $(IMAGE_ROOTFS) -c 64 >>$@
 endef
 
+define Build/zyxel-tar-bz2
+	mkdir -p $@.tmp
+	mv $@ $@.tmp/$(word 2,$(1))
+	cp $(KDIR)/loader-$(DEVICE_NAME).uImage $@.tmp/$(word 1,$(1)).lzma.uImage
+	$(TAR) -cjf $@ -C $@.tmp .
+	rm -rf $@.tmp
+endef
 
 define Device/seama
   KERNEL := kernel-bin | append-dtb | relocate-kernel | lzma
@@ -208,7 +216,7 @@ define Device/adtran_bsap1880
   IMAGE_SIZE := 11200k
   IMAGES += kernel.bin rootfs.bin
   IMAGE/kernel.bin := append-kernel
-  IMAGE/rootfs.bin := append-rootfs | pad-rootfs
+  IMAGE/rootfs.bin := append-rootfs | pad-rootfs | pad-to $$(BLOCKSIZE)
   IMAGE/sysupgrade.bin := append-rootfs | pad-rootfs | \
 	check-size | sysupgrade-tar rootfs=$$$$@ | append-metadata
 endef
@@ -374,6 +382,32 @@ define Device/aruba_ap-105
   DEVICE_PACKAGES := kmod-i2c-gpio kmod-tpm-i2c-atmel
 endef
 TARGET_DEVICES += aruba_ap-105
+
+define Device/asus_pl-ac56
+  SOC := qca9563
+  DEVICE_VENDOR := ASUS
+  DEVICE_MODEL := PL-AC56
+  DEVICE_VARIANT := A1
+  IMAGE_SIZE := 15488k
+  IMAGES += factory.bin
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | \
+	append-rootfs | pad-rootfs
+  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
+endef
+TARGET_DEVICES += asus_pl-ac56
+
+define Device/asus_rp-ac51
+  SOC := qca9531
+  DEVICE_VENDOR := ASUS
+  DEVICE_MODEL := RP-AC51
+  IMAGE_SIZE := 16000k
+  IMAGES += factory.bin
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | \
+	append-rootfs | pad-rootfs
+  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ct \
+	-swconfig
+endef
+TARGET_DEVICES += asus_rp-ac51
 
 define Device/asus_rp-ac66
   SOC := qca9563
@@ -556,6 +590,7 @@ TARGET_DEVICES += buffalo_wzr-hp-g300nh-rb
 define Device/buffalo_wzr-hp-g300nh-s
   $(Device/buffalo_wzr-hp-g300nh)
   DEVICE_MODEL := WZR-HP-G300NH (RTL8366S switch)
+  DEVICE_PACKAGES += kmod-switch-rtl8366rb
 endef
 TARGET_DEVICES += buffalo_wzr-hp-g300nh-s
 
@@ -862,7 +897,8 @@ define Device/dlink_dap-2xxx
   IMAGE/factory.img := append-kernel | pad-offset 6144k 160 | \
 	append-rootfs | wrgg-pad-rootfs | mkwrggimg | check-size
   IMAGE/sysupgrade.bin := append-kernel | mkwrggimg | \
-	pad-to $$$$(BLOCKSIZE) | append-rootfs | check-size | append-metadata
+	pad-to $$$$(BLOCKSIZE) | append-rootfs | wrgg-pad-rootfs | \
+	check-size | append-metadata
   KERNEL := kernel-bin | append-dtb | relocate-kernel | lzma
   KERNEL_INITRAMFS := $$(KERNEL) | mkwrggimg
 endef
@@ -896,7 +932,7 @@ define Device/dlink_dap-2680-a1
   DEVICE_VENDOR := D-Link
   DEVICE_MODEL := DAP-2680
   DEVICE_VARIANT := A1
-  DEVICE_PACKAGES := ath10k-firmware-qca99x0-ct kmod-ath10k-ct
+  DEVICE_PACKAGES := ath10k-firmware-qca9984-ct kmod-ath10k-ct
   IMAGE_SIZE := 15232k
   DAP_SIGNATURE := wapac36_dkbs_dap2680
 endef
@@ -971,7 +1007,7 @@ define Device/dlink_dir-825-b1
   IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | \
 	check-size | append-metadata
   DEVICE_PACKAGES := kmod-usb-ohci kmod-usb2 kmod-usb-ledtrig-usbport \
-	kmod-leds-reset kmod-owl-loader
+	kmod-leds-reset kmod-owl-loader kmod-switch-rtl8366s
   SUPPORTED_DEVICES += dir-825-b1
 endef
 TARGET_DEVICES += dlink_dir-825-b1
@@ -1244,6 +1280,16 @@ define Device/etactica_eg200
 endef
 TARGET_DEVICES += etactica_eg200
 
+define Device/extreme-networks_ws-ap3805i
+  SOC := qca9557
+  BLOCKSIZE := 256k
+  DEVICE_VENDOR := Extreme Networks
+  DEVICE_MODEL := WS-AP3805i
+  DEVICE_PACKAGES := ath10k-firmware-qca988x-ct kmod-ath10k-ct
+  IMAGE_SIZE := 29440k
+endef
+TARGET_DEVICES += extreme-networks_ws-ap3805i
+
 define Device/glinet_6408
   $(Device/tplink-8mlzma)
   SOC := ar9331
@@ -1464,16 +1510,25 @@ define Device/jjplus_ja76pf2
   SOC := ar7161
   DEVICE_VENDOR := jjPlus
   DEVICE_MODEL := JA76PF2
-  DEVICE_PACKAGES += -kmod-ath9k -swconfig -wpad-basic-wolfssl -uboot-envtools fconfig
-  IMAGES += kernel.bin rootfs.bin
-  IMAGE/kernel.bin := append-kernel
-  IMAGE/rootfs.bin := append-rootfs | pad-rootfs
-  IMAGE/sysupgrade.bin := append-rootfs | pad-rootfs | combined-image | \
-	check-size | append-metadata
-  KERNEL := kernel-bin | append-dtb | lzma | pad-to $$(BLOCKSIZE)
+  DEVICE_PACKAGES += -kmod-ath9k -swconfig -wpad-basic-wolfssl -uboot-envtools fconfig kmod-hwmon-lm75
+  LOADER_TYPE := bin
+  LOADER_FLASH_OFFS := 0x60000
+  COMPILE := loader-$(1).bin
+  COMPILE/loader-$(1).bin := loader-okli-compile | lzma | pad-to 128k
+  ARTIFACTS := loader.bin
+  ARTIFACT/loader.bin := append-loader-okli $(1)
+  IMAGES += firmware.bin
+  IMAGE/firmware.bin := append-kernel | uImage lzma -M 0x4f4b4c49 | pad-to $$$$(BLOCKSIZE) | \
+	append-rootfs | pad-rootfs | pad-to $$$$(BLOCKSIZE) | check-size
+  IMAGE/sysupgrade.bin := $$(IMAGE/firmware.bin) | \
+	sysupgrade-tar kernel=$$$$(KDIR)/loader-$(1).bin rootfs=$$$$@ | append-metadata
+  KERNEL := kernel-bin | append-dtb | lzma
   KERNEL_INITRAMFS := kernel-bin | append-dtb
-  IMAGE_SIZE := 16000k
-  SUPPORTED_DEVICES += ja76pf2
+  IMAGE_SIZE := 15872k
+  DEVICE_COMPAT_VERSION := 2.0
+  DEVICE_COMPAT_MESSAGE := Partition design has changed compared to older versions (19.07 and 21.02) \
+	due to kernel drivers restrictions. Upgrade via sysupgrade mechanism is one way operation. \
+	Downgrading OpenWrt version will involve usage of bootloader command line interface.
 endef
 TARGET_DEVICES += jjplus_ja76pf2
 
@@ -1673,7 +1728,7 @@ define Device/netgear_wndr3x00
   $(Device/netgear_generic)
   SOC := ar7161
   DEVICE_PACKAGES := kmod-usb-ohci kmod-usb2 kmod-usb-ledtrig-usbport \
-	kmod-leds-reset kmod-owl-loader
+	kmod-leds-reset kmod-owl-loader kmod-switch-rtl8366s
 endef
 
 define Device/netgear_wndr3700
@@ -2327,6 +2382,29 @@ define Device/rosinson_wr818
 endef
 TARGET_DEVICES += rosinson_wr818
 
+define Device/ruckus_zf73xx_common
+  DEVICE_VENDOR := Ruckus
+  DEVICE_PACKAGES := -swconfig kmod-usb2 kmod-usb-chipidea2
+  IMAGE_SIZE := 31744k
+  LOADER_TYPE := bin
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | uImage none
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | uImage none
+endef
+
+define Device/ruckus_zf7321
+  $(Device/ruckus_zf73xx_common)
+  SOC := ar9342
+  DEVICE_MODEL := ZoneFlex 7321[-U]
+endef
+TARGET_DEVICES += ruckus_zf7321
+
+define Device/ruckus_zf7372
+  $(Device/ruckus_zf73xx_common)
+  SOC := ar9344
+  DEVICE_MODEL := ZoneFlex 7352/7372[-E/-U]
+endef
+TARGET_DEVICES += ruckus_zf7372
+
 define Device/samsung_wam250
   SOC := ar9344
   DEVICE_VENDOR := Samsung
@@ -2380,6 +2458,15 @@ define Device/sitecom_wlr-8100
   IMAGE_SIZE := 15424k
 endef
 TARGET_DEVICES += sitecom_wlr-8100
+
+define Device/sophos_ap15
+  SOC := qca9558
+  DEVICE_VENDOR := Sophos
+  DEVICE_MODEL := AP15
+  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct
+  IMAGE_SIZE := 15936k
+endef
+TARGET_DEVICES += sophos_ap15
 
 define Device/sophos_ap55
   SOC := qca9558
@@ -2503,6 +2590,49 @@ define Device/wallys_dr531
   SUPPORTED_DEVICES += dr531
 endef
 TARGET_DEVICES += wallys_dr531
+
+define Device/watchguard_ap100
+  $(Device/senao_loader_okli)
+  SOC := ar9344
+  DEVICE_VENDOR := WatchGuard
+  DEVICE_MODEL := AP100
+  IMAGE_SIZE := 12096k
+  LOADER_FLASH_OFFS := 0x220000
+  SENAO_IMGNAME := senao-ap100
+  WATCHGUARD_MAGIC := 82kdlzk2
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
+	check-size | senao-tar-gz $$$$(SENAO_IMGNAME) | watchguard-cksum $$$$(WATCHGUARD_MAGIC)
+endef
+TARGET_DEVICES += watchguard_ap100
+
+define Device/watchguard_ap200
+  $(Device/senao_loader_okli)
+  SOC := ar9344
+  DEVICE_VENDOR := WatchGuard
+  DEVICE_MODEL := AP200
+  IMAGE_SIZE := 12096k
+  LOADER_FLASH_OFFS := 0x220000
+  SENAO_IMGNAME := senao-ap200
+  WATCHGUARD_MAGIC := 82kdlzk2
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
+	check-size | senao-tar-gz $$$$(SENAO_IMGNAME) | watchguard-cksum $$$$(WATCHGUARD_MAGIC)
+endef
+TARGET_DEVICES += watchguard_ap200
+
+define Device/watchguard_ap300
+  $(Device/senao_loader_okli)
+  SOC := qca9558
+  DEVICE_VENDOR := WatchGuard
+  DEVICE_MODEL := AP300
+  DEVICE_PACKAGES := ath10k-firmware-qca988x-ct kmod-ath10k-ct
+  IMAGE_SIZE := 11584k
+  LOADER_FLASH_OFFS := 0x220000
+  SENAO_IMGNAME := senao-ap300
+  WATCHGUARD_MAGIC := 82kdlzk2
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
+	check-size | senao-tar-gz $$$$(SENAO_IMGNAME) | watchguard-cksum $$$$(WATCHGUARD_MAGIC)
+endef
+TARGET_DEVICES += watchguard_ap300
 
 define Device/wd_mynet-n600
   $(Device/seama)
@@ -2641,6 +2771,54 @@ define Device/zbtlink_zbt-wd323
 	kmod-usb-serial-cp210x uqmi
 endef
 TARGET_DEVICES += zbtlink_zbt-wd323
+
+define Device/zyxel_nwa11xx
+  $(Device/loader-okli-uimage)
+  SOC := ar9342
+  DEVICE_VENDOR := ZyXEL
+  LOADER_FLASH_OFFS := 0x050000
+  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49
+  IMAGE_SIZE := 8192k
+  IMAGES += factory-$$$$(ZYXEL_MODEL_STRING).bin
+  IMAGE/factory-$$$$(ZYXEL_MODEL_STRING).bin := \
+	append-kernel | pad-to $$$$(BLOCKSIZE) | append-rootfs | \
+	pad-rootfs | pad-to 8192k | check-size | zyxel-tar-bz2 \
+	vmlinux_mi124_f1e mi124_f1e-jffs2 | append-md5sum-bin
+endef
+
+define Device/zyxel_nwa1100-nh
+  $(Device/zyxel_nwa11xx)
+  DEVICE_MODEL := NWA1100
+  DEVICE_VARIANT := NH
+  ZYXEL_MODEL_STRING := AASI
+endef
+TARGET_DEVICES += zyxel_nwa1100-nh
+
+define Device/zyxel_nwa1121-ni
+  $(Device/zyxel_nwa11xx)
+  DEVICE_MODEL := NWA1121
+  DEVICE_VARIANT := NI
+  ZYXEL_MODEL_STRING := AABJ
+endef
+TARGET_DEVICES += zyxel_nwa1121-ni
+
+define Device/zyxel_nwa1123-ac
+  $(Device/zyxel_nwa11xx)
+  DEVICE_MODEL := NWA1123
+  DEVICE_VARIANT := AC
+  ZYXEL_MODEL_STRING := AAOX
+  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers \
+	ath10k-firmware-qca988x-ct
+endef
+TARGET_DEVICES += zyxel_nwa1123-ac
+
+define Device/zyxel_nwa1123-ni
+  $(Device/zyxel_nwa11xx)
+  DEVICE_MODEL := NWA1123
+  DEVICE_VARIANT := NI
+  ZYXEL_MODEL_STRING := AAEO
+endef
+TARGET_DEVICES += zyxel_nwa1123-ni
 
 define Device/zyxel_nbg6616
   SOC := qca9557

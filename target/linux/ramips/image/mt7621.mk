@@ -2,6 +2,7 @@
 # MT7621 Profiles
 #
 
+include ./common-sercomm.mk
 include ./common-tp-link.mk
 
 DEFAULT_SOC := mt7621
@@ -13,9 +14,10 @@ ifdef CONFIG_LINUX_5_10
   DTS_CPPFLAGS += -DDTS_LEGACY
 endif
 
-define Build/beeline-trx
+define Build/arcadyan-trx
 	echo -ne "hsqs" > $@.hsqs
-	$(STAGING_DIR_HOST)/bin/otrx create $@.trx -M 0x746f435d -f $@ \
+	$(eval trx_magic=$(word 1,$(1)))
+	$(STAGING_DIR_HOST)/bin/otrx create $@.trx -M $(trx_magic) -f $@ \
 		-a 0x20000 -b 0x420000 -f $@.hsqs -a 1000
 	mv $@.trx $@
 	dd if=/dev/zero bs=1024 count=1 >> $@.tail
@@ -27,6 +29,12 @@ endef
 
 define Build/gemtek-trailer
 	printf "%s%08X" ".GEMTEK." "$$(cksum $@ | cut -d ' ' -f1)" >> $@
+endef
+
+define Build/h3c-blank-header
+	dd if=/dev/zero of=$@.blank bs=160 count=1
+	cat $@ >> $@.blank
+	mv $@.blank $@
 endef
 
 define Build/iodata-factory
@@ -62,6 +70,30 @@ define Build/iodata-mstc-header
 	)
 endef
 
+define Build/belkin-header
+	$(eval magic=$(word 1,$(1)))
+	$(eval hw_ver=$(word 2,$(1)))
+	$(eval fw_ver=$(word 3,$(1)))
+
+	( \
+		type_fw_date=$$(printf "01%02x%02x%02x" \
+			$$(date -d "@$(SOURCE_DATE_EPOCH)" "+%y %m %d")); \
+		hw_fw_ver=$$(printf "%02x%02x%02x%02x" \
+			$(hw_ver) $$(echo $(fw_ver) | cut -d. -f-3 | tr . ' ')); \
+		fw_len_crc=$$(gzip -c $@ | tail -c 8 | od -An -tx8 | tr -d ' \n'); \
+		fw_crc_len="$${fw_len_crc:8:8}$${fw_len_crc:0:8}"; \
+		\
+		printf "$(magic)" | dd bs=4 count=1 conv=sync 2>/dev/null; \
+		printf "$$(echo $${type_fw_date}$${hw_fw_ver} | \
+			sed 's/../\\x&/g')"; \
+		printf "$$(echo $${fw_crc_len}$${fw_crc_len} | \
+			sed 's/../\\x&/g')"; \
+		printf "\x5c\x78\x00\x00"; \
+		cat $@; \
+	) > $@.new
+	mv $@.new $@
+endef
+
 define Build/ubnt-erx-factory-image
 	if [ -e $(KDIR)/tmp/$(KERNEL_INITRAMFS_IMAGE) -a "$$(stat -c%s $@)" -lt "$(KERNEL_SIZE)" ]; then \
 		echo '21001:7' > $(1).compat; \
@@ -91,6 +123,13 @@ define Build/zytrx-header
 	$(eval version=$(word 2,$(1)))
 	$(STAGING_DIR_HOST)/bin/zytrx -B '$(board)' -v '$(version)' -i $@ -o $@.new
 	mv $@.new $@
+endef
+
+define Build/zyxel-nwa-fit
+	$(TOPDIR)/scripts/mkits-zyxel-fit.sh \
+		$@.its $@ "6b e1 6f e1 ff ff ff ff ff ff"
+	PATH=$(LINUX_DIR)/scripts/dtc:$(PATH) mkimage -f $@.its $@.new
+	@mv $@.new $@
 endef
 
 define Device/dsa-migration
@@ -174,6 +213,36 @@ define Device/asiarf_ap7621-nv1
 endef
 TARGET_DEVICES += asiarf_ap7621-nv1
 
+define Device/asus_rp-ac56
+  $(Device/dsa-migration)
+  $(Device/uimage-lzma-loader)
+  DEVICE_VENDOR := ASUS
+  DEVICE_MODEL := RP-AC56
+  IMAGE_SIZE := 16000k
+  BLOCKSIZE := 64k
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt76x2 \
+	kmod-i2c-ralink kmod-sound-mt7620
+  IMAGES += factory.bin
+  IMAGE/factory.bin := append-kernel | append-rootfs | pad-rootfs | check-size
+  IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | \
+        check-size | append-metadata
+endef
+TARGET_DEVICES += asus_rp-ac56
+
+define Device/asus_rp-ac87
+  $(Device/dsa-migration)
+  $(Device/uimage-lzma-loader)
+  IMAGE_SIZE := 16064k
+  DEVICE_VENDOR := ASUS
+  DEVICE_MODEL := RP-AC87
+  IMAGES += factory.bin
+  IMAGE/factory.bin := append-kernel | append-rootfs | pad-rootfs | check-size
+  IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | \
+	check-size | append-metadata
+  DEVICE_PACKAGES := kmod-mt7615e kmod-mt7615-firmware rssileds
+endef
+TARGET_DEVICES += asus_rp-ac87
+
 define Device/asus_rt-ac57u
   $(Device/dsa-migration)
   DEVICE_VENDOR := ASUS
@@ -231,6 +300,23 @@ define Device/asus_rt-n56u-b1
 endef
 TARGET_DEVICES += asus_rt-n56u-b1
 
+define Device/asus_rt-ax53u
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := ASUS
+  DEVICE_MODEL := RT-AX53U
+  IMAGE_SIZE := 51200k
+  UBINIZE_OPTS := -E 5
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  KERNEL_SIZE := 4096k
+  IMAGES += factory.bin
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  IMAGE/factory.bin := append-kernel | pad-to $$(KERNEL_SIZE) | append-ubi | \
+	check-size
+  DEVICE_PACKAGES := kmod-mt7915e kmod-usb3 uboot-envtools
+endef
+TARGET_DEVICES += asus_rt-ax53u
+
 define Device/beeline_smartbox-flash
   $(Device/dsa-migration)
   $(Device/uimage-lzma-loader)
@@ -242,16 +328,63 @@ define Device/beeline_smartbox-flash
   BLOCKSIZE := 128k
   PAGESIZE := 2048
   KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
-	uImage none | beeline-trx | pad-to $$(KERNEL_SIZE)
+	uImage none | arcadyan-trx 0x746f435d | pad-to $$(KERNEL_SIZE)
   KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
 	uImage none
   IMAGES += factory.trx
   IMAGE/factory.trx := append-kernel | append-ubi | check-size
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   DEVICE_PACKAGES := kmod-usb3 kmod-mt7615e kmod-mt7615-firmware \
-	uboot-envtools
+	uboot-envtools uencrypt
 endef
 TARGET_DEVICES += beeline_smartbox-flash
+
+define Device/beeline_smartbox-giga
+  $(Device/sercomm_dxx)
+  IMAGE_SIZE := 24576k
+  SERCOMM_HWID := DBE
+  SERCOMM_HWVER := 10100
+  SERCOMM_SWVER := 1001
+  DEVICE_VENDOR := Beeline
+  DEVICE_MODEL := SmartBox GIGA
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7663-firmware-ap \
+	kmod-usb3 uboot-envtools
+endef
+TARGET_DEVICES += beeline_smartbox-giga
+
+define Device/beeline_smartbox-turbo
+  $(Device/sercomm_dxx)
+  IMAGE_SIZE := 32768k
+  SERCOMM_HWID := DF3
+  SERCOMM_HWVER := 10200
+  SERCOMM_SWVER := 1004
+  DEVICE_VENDOR := Beeline
+  DEVICE_MODEL := SmartBox TURBO
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware \
+	kmod-usb3 uboot-envtools
+endef
+TARGET_DEVICES += beeline_smartbox-turbo
+
+define Device/belkin_rt1800
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  KERNEL_SIZE := 4096k
+  IMAGE_SIZE := 49152k
+  DEVICE_VENDOR := Belkin
+  DEVICE_MODEL := RT1800
+  DEVICE_PACKAGES := kmod-mt7915e kmod-usb3 uboot-envtools
+  UBINIZE_OPTS := -E 5
+  KERNEL_LOADADDR := 0x82000000
+  KERNEL := kernel-bin | relocate-kernel 0x80001000 | lzma | \
+	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb | \
+	append-squashfs4-fakeroot
+  IMAGES += factory.bin
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | \
+	append-ubi | check-size | belkin-header RT18 1 9.9.9
+endef
+TARGET_DEVICES += belkin_rt1800
 
 define Device/buffalo_wsr-1166dhp
   $(Device/dsa-migration)
@@ -683,6 +816,7 @@ TARGET_DEVICES += glinet_gl-mt1300
 
 define Device/gnubee_gb-pc1
   $(Device/dsa-migration)
+  $(Device/uimage-lzma-loader)
   DEVICE_VENDOR := GnuBee
   DEVICE_MODEL := Personal Cloud One
   DEVICE_PACKAGES := kmod-ata-ahci kmod-usb3 kmod-sdhci-mt7620 -wpad-basic-wolfssl
@@ -692,12 +826,47 @@ TARGET_DEVICES += gnubee_gb-pc1
 
 define Device/gnubee_gb-pc2
   $(Device/dsa-migration)
+  $(Device/uimage-lzma-loader)
   DEVICE_VENDOR := GnuBee
   DEVICE_MODEL := Personal Cloud Two
   DEVICE_PACKAGES := kmod-ata-ahci kmod-usb3 kmod-sdhci-mt7620 -wpad-basic-wolfssl
   IMAGE_SIZE := 32448k
 endef
 TARGET_DEVICES += gnubee_gb-pc2
+
+define Device/h3c_tx180x
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  KERNEL_SIZE := 8192k
+  IMAGE_SIZE := 120832k
+  UBINIZE_OPTS := -E 5
+  KERNEL_LOADADDR := 0x82000000
+  KERNEL_INITRAMFS := kernel-bin | relocate-kernel 0x80001000 | lzma | \
+	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb
+  KERNEL := $$(KERNEL_INITRAMFS) | h3c-blank-header
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  DEVICE_VENDOR := H3C
+  DEVICE_PACKAGES := kmod-mt7915e uboot-envtools
+endef
+
+define Device/h3c_tx1800-plus
+  $(Device/h3c_tx180x)
+  DEVICE_MODEL := TX1800 Plus
+endef
+TARGET_DEVICES += h3c_tx1800-plus
+
+define Device/h3c_tx1801-plus
+  $(Device/h3c_tx180x)
+  DEVICE_MODEL := TX1801 Plus
+endef
+TARGET_DEVICES += h3c_tx1801-plus
+
+define Device/h3c_tx1806
+  $(Device/h3c_tx180x)
+  DEVICE_MODEL := TX1806
+endef
+TARGET_DEVICES += h3c_tx1806
 
 define Device/hilink_hlk-7621a-evb
   $(Device/dsa-migration)
@@ -1023,6 +1192,15 @@ define Device/linksys_e5600
 endef
 TARGET_DEVICES += linksys_e5600
 
+define Device/linksys_e7350
+  $(Device/belkin_rt1800)
+  DEVICE_VENDOR := Linksys
+  DEVICE_MODEL := E7350
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | \
+	append-ubi | check-size | belkin-header GOLF 1 9.9.9
+endef
+TARGET_DEVICES += linksys_e7350
+
 define Device/linksys_ea7xxx
   $(Device/dsa-migration)
   $(Device/uimage-lzma-loader)
@@ -1187,6 +1365,27 @@ define Device/mtc_wr1201
 	kmod-usb-ledtrig-usbport
 endef
 TARGET_DEVICES += mtc_wr1201
+
+define Device/mts_wg430223
+  $(Device/dsa-migration)
+  $(Device/uimage-lzma-loader)
+  DEVICE_VENDOR := MTS
+  DEVICE_MODEL := WG430223
+  IMAGE_SIZE := 32768k
+  KERNEL_SIZE := 4352k
+  UBINIZE_OPTS := -E 5
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+	uImage none | arcadyan-trx 0x53485231 | pad-to $$(KERNEL_SIZE)
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
+	uImage none
+  IMAGES += factory.trx
+  IMAGE/factory.trx := append-kernel | append-ubi | check-size
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  DEVICE_PACKAGES := kmod-mt7615e kmod-mt7615-firmware uboot-envtools uencrypt
+endef
+TARGET_DEVICES += mts_wg430223
 
 define Device/netgear_ex6150
   $(Device/dsa-migration)
@@ -1359,6 +1558,29 @@ define Device/netgear_wac124
   DEVICE_PACKAGES += kmod-mt7615e kmod-mt7615-firmware
 endef
 TARGET_DEVICES += netgear_wac124
+
+define Device/netgear_wax202
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := NETGEAR
+  DEVICE_MODEL := WAX202
+  DEVICE_PACKAGES := kmod-mt7915e
+  NETGEAR_ENC_MODEL := WAX202
+  NETGEAR_ENC_REGION := US
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  UBINIZE_OPTS := -E 5
+  IMAGE_SIZE := 38912k
+  KERNEL_SIZE := 4096k
+  KERNEL_LOADADDR := 0x82000000
+  KERNEL := kernel-bin | relocate-kernel 0x80001000 | lzma | \
+	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb | \
+	append-squashfs4-fakeroot
+  IMAGES += factory.img
+  IMAGE/factory.img := append-kernel | pad-to $$(KERNEL_SIZE) | \
+	append-ubi | check-size | netgear-encrypted-factory
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += netgear_wax202
 
 define Device/netgear_wndr3700-v5
   $(Device/dsa-migration)
@@ -1724,6 +1946,17 @@ define Device/ubnt_unifi-6-lite
   IMAGE_SIZE := 15424k
 endef
 TARGET_DEVICES += ubnt_unifi-6-lite
+
+define Device/ubnt_unifi-flexhd
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := Ubiquiti
+  DEVICE_MODEL := UniFi FlexHD
+  DEVICE_DTS_CONFIG := config@2
+  KERNEL := kernel-bin | lzma | fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb
+  DEVICE_PACKAGES += kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware
+  IMAGE_SIZE := 15552k
+endef
+TARGET_DEVICES += ubnt_unifi-flexhd
 
 define Device/ubnt_unifi-nanohd
   $(Device/dsa-migration)
@@ -2106,6 +2339,25 @@ define Device/zio_freezio
 endef
 TARGET_DEVICES += zio_freezio
 
+define Device/zyxel_lte3301-plus
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  UBINIZE_OPTS := -E 5
+  DEVICE_VENDOR := ZyXEL
+  DEVICE_MODEL := LTE3301-PLUS
+  DEVICE_PACKAGES := kmod-mt7615e kmod-mt7615-firmware kmod-usb3 \
+	uboot-envtools kmod-usb-ledtrig-usbport kmod-usb-net-qmi-wwan \
+	kmod-usb-serial-option uqmi
+  KERNEL := $(KERNEL_DTB) | uImage lzma | \
+	zytrx-header $$(DEVICE_MODEL) $$(VERSION_DIST)-$$(REVISION)
+  KERNEL_INITRAMFS := $(KERNEL_DTB) | uImage lzma | \
+	zytrx-header $$(DEVICE_MODEL) 9.99(ABQU.1)$$(VERSION_DIST)-recovery
+  KERNEL_INITRAMFS_SUFFIX := -recovery.bin
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += zyxel_lte3301-plus
+
 define Device/zyxel_nr7101
   $(Device/dsa-migration)
   BLOCKSIZE := 128k
@@ -2120,6 +2372,33 @@ define Device/zyxel_nr7101
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 endef
 TARGET_DEVICES += zyxel_nr7101
+
+define Device/zyxel_nwa-ax
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := ZyXEL
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  KERNEL_SIZE := 8192k
+  UBINIZE_OPTS := -E 5
+  DEVICE_PACKAGES := kmod-mt7915e uboot-envtools zyxel-bootconfig
+  KERNEL := kernel-bin | lzma | fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb
+  IMAGES += factory.bin ramboot-factory.bin
+  IMAGE/factory.bin := append-kernel | pad-to $$(KERNEL_SIZE) | append-ubi | zyxel-nwa-fit
+  IMAGE/ramboot-factory.bin := append-kernel | pad-to $$(KERNEL_SIZE) | append-ubi
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+endef
+
+define Device/zyxel_nwa50ax
+  $(Device/zyxel_nwa-ax)
+  DEVICE_MODEL := NWA50AX
+endef
+TARGET_DEVICES += zyxel_nwa50ax
+
+define Device/zyxel_nwa55axe
+  $(Device/zyxel_nwa-ax)
+  DEVICE_MODEL := NWA55AXE
+endef
+TARGET_DEVICES += zyxel_nwa55axe
 
 define Device/zyxel_wap6805
   $(Device/dsa-migration)

@@ -28,7 +28,9 @@ ipq40xx_setup_interfaces()
 	dlink,dap-2610 |\
 	engenius,eap1300|\
 	engenius,emd1|\
+	extreme-networks,ws-ap3915i|\
 	meraki,mr33|\
+	meraki,mr74|\
 	mikrotik,lhgg-60ad|\
 	mikrotik,sxtsq-5-ac|\
 	netgear,ex6100v2|\
@@ -89,7 +91,8 @@ ipq40xx_setup_interfaces()
 		;;
 	compex,wpj419|\
 	compex,wpj428|\
-	engenius,eap2200)
+	engenius,eap2200|\
+	mikrotik,wap-ac)
 		ucidef_set_interface_lan "eth0 eth1"
 		;;
 	buffalo,wtr-m2133hp)
@@ -134,6 +137,11 @@ ipq40xx_setup_interfaces()
 		ucidef_add_switch "switch0" \
 			"0u@eth0" "2:lan" "3:lan" "4:lan"
 		ucidef_set_interface_wan "eth1"
+		;;
+	pakedge,wr-1)
+		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+		ucidef_add_switch "switch0" \
+			"0u@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1" "0u@eth1" "5:wan"
 		;;
 	qxwlan,e2600ac-c1 |\
 	qxwlan,e2600ac-c2)
@@ -218,6 +226,8 @@ ipq40xx_setup_macs()
 		lan_mac=$(cat /sys/firmware/mikrotik/hard_config/mac_base)
 		label_mac="$lan_mac"
 		;;
+	pakedge,wr-1)
+		wan_mac=$(macaddr_add $(get_mac_label) 1)
 	esac
 
 	[ -n "$lan_mac" ] && ucidef_set_interface_macaddr "lan" $lan_mac
