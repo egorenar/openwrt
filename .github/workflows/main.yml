@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/egorenar/openwrt
+  REPO_URL: https://github.com/kumv-net/openwrt
   REPO_BRANCH: netgear-r9000
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: config-r9000
