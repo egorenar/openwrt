@@ -1,0 +1,11 @@
+Index: linux-6.6.22/arch/arm/boot/dts/Makefile
+===================================================================
+--- linux-6.6.22.orig/arch/arm/boot/dts/Makefile
++++ linux-6.6.22/arch/arm/boot/dts/Makefile
+@@ -40,4 +40,5 @@ subdir-y += xen
+ subdir-y += xilinx
+ 
+ dtb-$(CONFIG_ARCH_ALPINE) += \
+-	alpine-r9000.dtb
++	alpine-r9000.dtb \
++	alpine-xr700.dtb
